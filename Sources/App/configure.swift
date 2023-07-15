@@ -14,8 +14,16 @@ public func configure(_ app: Application) throws {
 
     guard let databaseUrlString = Environment.get("DATABASE_URL") else { throw Abort(.internalServerError) }
     guard let databaseUrl = URL(string: databaseUrlString) else { throw Abort(.internalServerError) }
+    
+    var tlsConfig: TLSConfiguration = .makeClientConfiguration()
+    if Environment.get("should_override_default_transport_config") == "true" {
+        tlsConfig.certificateVerification = .none
+    }
+    
+    let nioSSLContext = try NIOSSLContext(configuration: tlsConfig)
+    var postgresConfig = try SQLPostgresConfiguration(url: databaseUrl)
+    postgresConfig.coreConfiguration.tls = .require(nioSSLContext)
 
-    let postgresConfig = try SQLPostgresConfiguration(url: databaseUrl)
     app.databases.use(
         .postgres(
             configuration: postgresConfig
