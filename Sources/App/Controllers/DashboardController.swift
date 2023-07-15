@@ -37,28 +37,28 @@ struct DashboardController: RouteCollection {
     private func getGraphData(req: Request) -> EventLoopFuture<(throughput: [DashboardViewContext.GraphData], execution: [DashboardViewContext.GraphData])> {
         let executionQuery: SQLQueryString = """
         SELECT
-            avg(TIMESTAMPDIFF(second, dequeuedAt, completedAt)) as "value",
-            DATE_FORMAT(completedAt, "%h:00") as "key"
+            EXTRACT(EPOCH FROM AVG("completedAt" - "dequeuedAt")) AS "value",
+            TO_CHAR("completedAt", 'HH24:00') AS "key"
         FROM
             _queue_job_completions
         WHERE
-            completedAt IS NOT NULL
-            AND completedAt >= DATE_SUB(now(), interval 24 hour)
+            "completedAt" IS NOT NULL
+            AND "completedAt" >= (NOW() - INTERVAL '24 hour')
         GROUP BY
-            DATE_FORMAT(completedAt, "%h:00")
+            TO_CHAR("completedAt", 'HH24:00');
         """
 
         let throughputQuery: SQLQueryString = """
         SELECT
-            count(*) * 1.0 as "value",
-            DATE_FORMAT(completedAt, "%h:00") as "key"
+            COUNT(*) * 1.0 AS "value",
+            TO_CHAR("completedAt", 'HH24:00') AS "key"
         FROM
-            _queue_job_completions
+            "_queue_job_completions"
         WHERE
-            completedAt IS NOT NULL
-            AND completedAt >= DATE_SUB(now(), interval 24 hour)
+            "completedAt" IS NOT NULL
+            AND "completedAt" >= (NOW() - INTERVAL '24 hour')
         GROUP BY
-            DATE_FORMAT(completedAt, "%h:00")
+            TO_CHAR("completedAt", 'HH24:00');
         """
 
         guard let sqlDb = req.db as? SQLDatabase else { return req.eventLoop.future(error: Abort(.internalServerError)) }

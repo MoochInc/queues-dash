@@ -31,7 +31,7 @@ struct JobsController: RouteCollection {
             .sort(\.$queuedAt, .descending)
 
         if filter != -1 {
-            guard let status = QueueDatabaseEntry.Status(rawValue: filter) else { throw Abort(.notFound) }
+            guard let status = QueueDatabaseEntry.Status(rawValue: UInt8(filter)) else { throw Abort(.notFound) }
             query.filter(\.$status == status)
         }
 
